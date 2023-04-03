@@ -1,4 +1,3 @@
-# HUDM-6122
-
-# Introduction to Applied Multivariate Analysis
-# HW and Project
+# HUDM-6122 Introduction to Applied Multivariate Analysis
+# HW
+# Project
