@@ -1,0 +1,90 @@
+---
+title: "HW7"
+author: "Getong Zhong"
+date: "2023-04-14"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1
+### 1 - Correlation Matrix
+```{r}
+data(USArrests)
+data_centered <- scale(USArrests, center = TRUE, scale = TRUE)
+cor <- cor(data_centered)
+cor_dis <- 1 - cor
+cor_dis
+
+```
+### Proportional to the squared Euclidean distance
+```{r}
+euc_sqrt <- as.matrix(dist(t(data_centered), method = "euclidean", diag = TRUE, upper = TRUE))^2
+euc_sqrt/cor_dis
+```
+
+From the matrix we can see that the proportionality holds for every variable.
+
+## 2
+### Textbook formula:
+```{r}
+cov <- cov(data_centered)
+ev <- eigen(cov)$values
+ptv1 <- ev / sum(ev)
+ptv1
+```
+### By R function
+```{r}
+pca <- prcomp(data_centered)
+sdev <- pca$sdev
+ptv2 <- (sdev^2) / sum(sdev^2)
+ptv2
+```
+By two methods, we get the same results.
+
+## 3
+### (a)
+```{r}
+eucli_dist <- dist(USArrests, method = "euclidean")
+hc <- hclust(eucli_dist, method = "complete")
+
+# Plot the dendrogram
+plot(hc, labels = row.names(USArrests), main = "Hierarchical Clustering (Complete Linkage)", xlab = "States", sub = "")
+
+```
+
+### (b)
+From the table we find that 
+```{r}
+clusters <- cutree(hc, k = 3)
+states_clusters <- data.frame(State = row.names(USArrests), Cluster = clusters)
+states_clusters
+c1 <- states_clusters$State[states_clusters$Cluster == 1]
+c2 <- states_clusters$State[states_clusters$Cluster == 2]
+c3 <- states_clusters$State[states_clusters$Cluster == 3]
+```
+Cluster 1:
+```{r}
+print(c1)
+```
+Cluster 2:
+```{r}
+print(c2)
+```
+Cluster 3:
+```{r}
+print(c3)
+```
+
+### (c)
+```{r}
+data_scaled <- scale(USArrests, center = FALSE, scale = apply(USArrests, 2, sd))
+euc_dis <- dist(data_scaled, method = "euclidean")
+hc <- hclust(euc_dis, method = "complete")
+plot(hc, labels = row.names(USArrests), main = "Hierarchical Clustering (Complete Linkage)", xlab = "States", sub = "")
+```
+
+### (d)
+When we scale the variables to have a standard deviation of one, they are basically beening standardized, meaning that all the variables have equal importance when calculating the dissimilarity. Therefore, use scaled data for clustering can make the results more balanced and get more reasonable clustering. I think it is a good idea to scale the variables before clustering. First, we scaled the data before the clustering can make each variable equaly effective to the results, and reduce the risk that the results might affect by certain variable due the their larger scale. Second, when we scale the variable into same unit, we can make the comparison results more meaningful. However, we still need to keep in mind that the context of the problem is also important, we need to consider if scaled variable still make sense in the context before we do the scaling.

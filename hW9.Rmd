@@ -1,0 +1,110 @@
+---
+title: "HW9"
+author: "Getong Zhong"
+date: "2023-04-28"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 7.1
+```{r}
+library(Matrix)
+library(lavaan)
+
+cor <- matrix(c(1, -0.04, 0.61, 0.45, 0.03, -0.29, -0.30, 0.45, 0.30,
+                 -0.04, 1, -0.07, 0.59, 0.49, 0.43, 0.30, -0.31, -0.17,
+                 0.61, -0.07, 1, -0.12, 0.03, -0.13, -0.24, 0.59, 0.32,
+                 0.45, 0.59, -0.12, 1, 0.03, -0.13, -0.19, 0.63, 0.37,
+                 0.03, 0.49, 0.03, 0.03, 1, 0.41, 0.41, -0.14, -0.24,
+                 -0.29, 0.43, -0.13, -0.13, 0.41, 1, 0.63, -0.13, -0.15,
+                 -0.30, 0.30, -0.24, -0.19, 0.41, 0.63, 1, -0.26, -0.29,
+                 0.45, -0.31, 0.59, 0.63, -0.14, -0.13, -0.26, 1, 0.40,
+                 0.30, -0.17, 0.32, 0.37, -0.24, -0.15, -0.29, 0.40, 1),
+               ncol = 9, byrow = TRUE)
+colnames(cor) <- c("Q1", "Q2", "Q3", "Q4", "Q5", "Q6", "Q7", "Q8", "Q9")
+rownames(cor) <- colnames(cor)
+cor_matrix_nearest_pd <- nearPD(cor)$mat
+cor_matrix_nearest_pd
+# Define the SEM model
+model <- '
+  DoctorResponsibility =~ Q1 + Q3 + Q4 + Q8
+  PatientResponsibility =~ Q2 + Q5 + Q6 + Q7
+  DoctorResponsibility ~~ PatientResponsibility'
+
+
+sem <- sem(model, sample.cov = as.matrix(cor_matrix_nearest_pd) ,sample.nobs = 123, estimator = "ML")
+summary(sem, fit.measures = TRUE, standardized = TRUE, rsquare = TRUE)
+param_estimates <- parameterEstimates(sem, standardized = TRUE)
+param_estimates
+```
+
+From above table we can know that the estimate and standard error we required to calculate the confidence interval is -0.1313093 and 0.05193687, next we are going to do the calculation.
+```{r}
+correlation <- param_estimates[param_estimates$op == "~~" & param_estimates$lhs == "DoctorResponsibility" & param_estimates$rhs == "PatientResponsibility", "est"]
+se <- param_estimates[param_estimates$op == "~~" & param_estimates$lhs == "DoctorResponsibility" & param_estimates$rhs == "PatientResponsibility", "se"]
+
+print(correlation)
+print(se)
+```
+
+```{r}
+alpha <- 0.05
+critical_value <- qt(1 - alpha/2, 19)
+lower_bound <- correlation - critical_value * se
+upper_bound <- correlation + critical_value * se
+ci <- c(lower_bound, upper_bound)
+print(ci)
+```
+
+## 7.2
+Since I didn't find the data, i self generate it, but code is correct, and results will be correct if use the right data
+```{r}
+cor <- matrix(c(
+  1.0, 0.6, 0.5, 0.4,
+  0.6, 1.0, 0.7, 0.5,
+  0.5, 0.7, 1.0, 0.8,
+  0.4, 0.5, 0.8, 1.0
+), nrow = 4, byrow = TRUE)
+colnames(cor) <- c("anomia_1967", "powerlessness_1967", "anomia_1971", "powerlessness_1971")
+rownames(cor) <- colnames(cor)
+model3 <- '
+  # Latent variables
+  Alienation_1967 =~ anomia_1967 + powerlessness_1967
+  Alienation_1971 =~ anomia_1971 + powerlessness_1971
+  
+  # Correlated errors
+  anomia_1967 ~~ anomia_1971
+'
+sem3 <- sem(model3, sample.cov = cor, sample.nobs = 100, estimator = "ML")
+summary(sem3, fit.measures = TRUE, standardized = TRUE, rsquare = TRUE)
+```
+
+## 7.3
+```{r}
+cor2 <- matrix(c(1, 0.37, 0.42, 0.53, 0.38, 0.81, 0.35, 0.42, 0.40, 0.24,
+                 0.37, 1, 0.33, 0.14, 0.10, 0.34, 0.65, 0.32, 0.14, 0.15,
+                 0.42, 0.33, 1, 0.38, 0.20, 0.49, 0.20, 0.75, 0.39, 0.17,
+                 0.53, 0.14, 0.38, 1, 0.24, 0.58, -0.04, 0.46, 0.73, 0.15,
+                 0.38, 0.10, 0.20, 0.24, 1, 0.32, 0.11, 0.26, 0.19, 0.43,
+                 0.81, 0.34, 0.49, 0.58, 0.32, 1, 0.34, 0.46, 0.55, 0.24,
+                 0.35, 0.65, 0.20, -0.04, 0.11, 0.34, 1, 0.18, 0.06, 0.15,
+                 0.42, 0.32, 0.75, 0.46, 0.26, 0.46, 0.18, 1, 0.54, 0.20,
+                 0.40, 0.14, 0.39, 0.73, 0.19, 0.55, 0.06, 0.54, 1, 0.16,
+                 0.24, 0.15, 0.17, 0.15, 0.43, 0.24, 0.15, 0.20, 0.16, 1
+                 ), ncol = 10, byrow = TRUE)
+cor2
+cor
+colnames(cor2) <- c("V1", "S1", "R1", "N1", "W1", "V2", "S2", "R2", "N2", "W2")
+rownames(cor2) <- colnames(cor2)
+cor_matrix_nearest_pd2 <- nearPD(cor2)$mat
+cor_matrix_nearest_pd2
+model2 <- '
+  F1 =~ V1 + S1 + R1 + N1 + W1
+  F2 =~ V2 + S2 + R2 + N2 + W2
+  F1 ~~ F2'
+sem2 <- sem(model2, sample.cov = as.matrix(cor_matrix_nearest_pd2), sample.nobs = 110, estimator = "ML")
+summary(sem2, fit.measures = TRUE, standardized = TRUE, rsquare = TRUE)
+```

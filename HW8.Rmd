@@ -1,0 +1,86 @@
+---
+title: "HW8"
+author: "Getong Zhong"
+date: "2023-04-20"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exercise 1
+```{r}
+library(ca)
+cars <- read.table("C:/Users/tonyg/Desktop/Academic/Grad/HUDM 6122/cars.txt", header = TRUE)
+cars
+rating <- cars[, c("Economy", "Service", "Long.run.Value", "Price", "Design", "SportyCar", "Safety", "EasyHandling")]
+rating <- as.matrix(rating)
+rownames(rating) <- cars$Type
+ca <- ca(rating)
+plot(ca)
+```
+
+## Exercise 2
+I got the Chi Square test statistics 4354.548, df 147, p-value approximately equal to 0. Since the p-value is extremely small(less than 2.2e-16), therefore R made it approximately 0. I also double checked my anaswer with the R-Based function chisq.test() to make sure I structured my own function correctly.
+```{r}
+bachelors <- read.table("C:/Users/tonyg/Desktop/Academic/Grad/HUDM 6122/bachelors.txt", header = TRUE)
+
+chi_sq <- function(x) {
+  row_totals <- apply(x, 1, sum)
+  col_totals <- apply(x, 2, sum)
+  grand_total <- sum(row_totals)
+  
+  expected <- outer(row_totals, col_totals) / grand_total
+  chi_sq <- sum((x - expected)^2 / expected)
+  
+  df <- (nrow(x) - 1) * (ncol(x) - 1)
+  
+  return(list(chi_sq = chi_sq, df = df, p_value = 1-pchisq(chi_sq, df)))
+}
+
+chi_sq(bachelors[,c(-1,-2,-11)]) 
+chisq.test(bachelors[,c(-1,-2,-11)])
+```
+## Exercise 3
+In the third Axis, state GA has the highest absolute contribution. As it has the highest absolute contribution, it means crime pattern in state GA has a strong influence on the structure of the third axis. From the second barchart that colored, we can observe the difference in crime pattern in different region. By comparing the highest absolute contribution, we can identify states that are particularly distinctive in terms of crime patterns along each axis
+```{r}
+crime <- read.table("C:/Users/tonyg/Desktop/Academic/Grad/HUDM 6122/UScrime.txt", header = TRUE)
+ca <- ca(crime[,4:10])
+row_sums <- rowSums(crime[,4:10])
+row_masses <- row_sums / sum(row_sums)
+squared_coordinates <- ca$rowcoord[, 1:3]^2
+ac <- t(t(squared_coordinates) /row_masses) / ca$sv[1:3]^2
+absolute_contributions <- data.frame(State = crime$state, 
+                                     Region = crime$region,
+                                     Axis1 = ac[, 1], 
+                                     Axis2 = ac[, 2], 
+                                     Axis3 = ac[, 3])
+absolute_contributions
+``` 
+
+```{r}
+barplot(absolute_contributions$Axis3 , names.arg = absolute_contributions$State, xlab = "State", ylab = "Axis 1 Contribution",
+        main = "Axis 3 Contributions", las = 2, cex.names = 0.6)
+```
+
+```{r}
+colors <- c("red", "blue", "green", "yellow")
+colors1 <- colors[absolute_contributions$Region]
+barplot(height = absolute_contributions$Axis3, names.arg = absolute_contributions$State, col = colors1, xlab = "State", ylab = "Axis3", cex.names = 0.6)
+legend("topright", legend = paste("Region", 1:4), fill = colors, cex = 0.8, bty = "n")
+
+```
+## Exercise 4
+Since we can treat the columns as categorical variables, we can consider this table as a contingency table. From the two graph, we can see that PCA and CA shows a different pattern but indicate similar relationships between variables and observations. For example,  both PCA and CA, we can observe that wine and milk locate on the opposite sides of the origin which indicate they are probably negative associated. In CA, milk & bread and poultry are negative associated, but in PCA , PC1 didn't show the same relationship. 
+```{r}
+food <- read.table("C:/Users/tonyg/Desktop/Academic/Grad/HUDM 6122/food.txt", header = TRUE)
+
+pca <- prcomp(cor(food[, -c(1,2)]), scale = TRUE)
+ca <- ca(food[, -c(1,2)])
+biplot(pca, main = "PCA")
+```
+
+```{r}
+plot(ca, main = "CA")
+```
