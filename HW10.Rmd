@@ -1,0 +1,96 @@
+---
+title: "HW10"
+author: "Getong Zhong"
+date: "2023-05-08"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+```
+
+## Ex 8.1
+```{r}
+
+timber <- read.table("timber.txt", header = TRUE) 
+ 
+model <- lm(loads ~ slippage -1 , data = timber)
+x_new <- seq(min(timber$slippage), max(timber$slippage), length.out = 100)
+y_pred <- predict(model, newdata = data.frame(slippage = x_new))
+
+plot(timber$slippage, timber$loads, pch = 16, cex = 0.8, xlab = "slippage", ylab = "loads")
+lines(x_new, y_pred, col = "red", lwd = 2)
+```
+
+## Ex 8.2
+```{r}
+
+plasma <- read.table("plasma.txt", header = TRUE) 
+data1 <- plasma[,c(1,2,3,4)]
+data2 <- plasma[,c(5,6,7,8)]
+data2 <- rename(data2, Subject = Subject.1, group = group.1, time = time.1, plasma = plasma.1)
+plasma <- rbind(data1, data2)
+```
+
+```{r}
+library(lme4)
+lme <- lmer(plasma ~ time*group + (1+time+I(time^2)|Subject), data = plasma)
+summary(lme)
+```
+
+## Ex 8.3
+```{r}
+library(nlme)
+BtheB <- read.table("BtheB.txt", header = TRUE) 
+BtheB$subject <- factor(rownames(BtheB))
+nobs <- nrow(BtheB)
+BtheB_long <- reshape(BtheB, idvar = "subject", varying = c("bdi.2m", "bdi.3m", "bdi.5m", "bdi.8m"),direction = "long")
+BtheB_long$time <- rep(c(2, 3, 5, 8), rep(nobs, 4))
+fit_ind <- lm(bdi ~ bdi.pre + time + treatment + drug + length, data = BtheB_long)
+BtheB_lme1 <- lme(bdi ~ bdi.pre + time + treatment + drug +
+                  length, random = ~ 1 | subject, data = BtheB_long,
+                  na.action = na.omit)
+
+ci_ind <- confint(fit_ind, "treatment", level = 0.95)
+ci_lme1 <- intervals(BtheB_lme1, which = "fixed", level = 0.95, type = "profile")
+
+ci_ind
+ci_lme1
+```
+
+## Ex 8.4
+```{r}
+predict(BtheB_lme1)
+BtheB_long$predicted <- predict(BtheB_lme1,BtheB_long)
+mean_profiles <- aggregate(bdi ~ treatment + time, data = BtheB_long, FUN = mean)
+predicted_profiles <- aggregate(predicted ~ treatment + time, data = BtheB_long, FUN = mean)
+mean_profiles
+predicted_profiles
+# Plot mean profiles and predicted values
+plot(mean_profiles$time, mean_profiles$bdi, type = "l", lty = 1, col = "black",
+     xlab = "Time", ylab = "BDI Score")
+lines(mean_profiles$time,predicted_profiles$predicted, type = "l", lty = 2, col = "red")
+legend("topright", legend = c("Observed", "Predicted"), lty = c(1, 2), col = c("black", "red"))
+```
+```{r}
+BtheB_lme_time <- lme(bdi ~ time + treatment, 
+                      random = ~ 1 | subject, data = BtheB_long, na.action = na.omit)
+BtheB_long$predicted2 <- predict(BtheB_lme_time,BtheB_long)
+mean_profiles2 <- aggregate(bdi ~ treatment + time, data = BtheB_long, FUN = mean)
+predicted_profiles2 <- aggregate(predicted2 ~ treatment + time, data = BtheB_long, FUN = mean)
+# Plot mean profiles and predicted values
+plot(mean_profiles2$time, mean_profiles2$bdi, type = "l", lty = 1, col = "black",
+     xlab = "Time", ylab = "BDI Score")
+lines(mean_profiles2$time,predicted_profiles2$predicted, type = "l", lty = 2, col = "red")
+legend("topright", legend = c("Observed", "Predicted"), lty = c(1, 2), col = c("black", "red"))
+```
+
+## Ex 8.5
+From the ANOVA table we can see that The F-value associated with the interaction is 65.9338, which suggests that there may be evidence for an interaction effect. However, the p-value is 0.1435397, which is not significant at a conventional alpha level of 0.05. Therefore, it may be difficult to conclude definitively whether there is an interaction between treatment and time.
+```{r}
+BtheB_lme2 <- lme(bdi ~ bdi.pre + time + treatment + drug + length + time*treatment, 
+                  random = ~ 1 | subject, data = BtheB_long, na.action = na.omit)
+
+summary(anova(BtheB_lme2))
+```
